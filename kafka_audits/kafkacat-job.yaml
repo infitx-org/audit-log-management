@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-kcat-consumer-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: kafka-consumer
+        image: edenhill/kcat:1.7.1
+        command:
+          # - "sleep"
+          # - "3600"
+          - "sh"
+          - "-c"
+          - "sleep 10; kcat -b mojaloop-kafka-svc.stateful-resources.svc.cluster.local:9092 -t topic-event-audit -C -o beginning -e -u -f \"%s\n\" > /tmp/kafka-dump.txt; echo \"Finished Dumping\"; sleep 3600"
+        volumeMounts:
+          - name: kafka-data
+            mountPath: /tmp
+      restartPolicy: Never
+      volumes:
+        - name: kafka-data
+          emptyDir: {}
+  backoffLimit: 0
+

@@ -1,0 +1,13 @@
+data
+dictionaries_lib
+flags
+format_schemas
+metadata
+metadata_dropped
+preprocessed_configs
+store
+tmp
+user_files
+user_scripts
+uuid
+clickhouse
