@@ -6,17 +6,12 @@
 - https://clickhouse.com/docs/en/observability
 
 
-## Quick Start
-https://clickhouse.com/docs/en/getting-started/quick-start
+## Docker compose
+docker compose up -d
+docker compose exec clickhouse clickhouse-client
 
-curl https://clickhouse.com/ | sh
 
-```
-./clickhouse server
-
-./clickhouse client
-```
-
+## JSON Data Type (Beta)
 ```
 SET enable_json_type = 1;
 SELECT name, value FROM system.settings WHERE name = 'enable_json_type';
@@ -47,57 +42,14 @@ docker run -p 8080:80  ctilab2/clickhouse-tabix-web-client:stable
 https://clickhouse.com/docs/en/integrations/kafka
 
 
-```
-CREATE OR REPLACE TABLE auditEvents
-(
-    `id` UUID,
-    `type` String,
-    `metadata` Tuple(event Tuple(type String, action String, createdAt String)),
-    `content` Tuple(size UInt64, topic String, timestamp String),
-)
-ENGINE = Kafka(
-   'localhost:9092',
-   'topic-event-audit',
-   'consumer-group-clickhouse',
-   'JSONEachRow'
-)
-SETTINGS kafka_skip_broken_messages=20;
-```
-
-
+### Querying the kafka table directly (Useful for debugging, only works when there is no materialized view)
 ```
 SELECT *
 FROM auditEvents
 LIMIT 20
 FORMAT Vertical
 SETTINGS stream_like_engine_allow_direct_select = 1;
-```
 
-```
-CREATE TABLE rawEvents (
-    id UUID,
-    event_type String,
-    event_action String,
-    created_at String
-)
-ENGINE = MergeTree
-ORDER BY (created_at);
-```
-
-```
-CREATE MATERIALIZED VIEW rawEvents_mv TO rawEvents
-AS
-   SELECT
-       id,
-       tupleElement(tupleElement(metadata, 'event'), 'type') AS event_type,
-       tupleElement(tupleElement(metadata, 'event'), 'action') AS event_action,
-       tupleElement(tupleElement(metadata, 'event'), 'createdAt') AS created_at
-FROM auditEvents
-SETTINGS date_time_input_format = 'best_effort';
-```
-
-Querying the kafka table directly
-```
 SELECT
     id,
     tupleElement(tupleElement(metadata, 'event'), 'type') AS event_type,
@@ -109,17 +61,14 @@ FORMAT Vertical
 SETTINGS stream_like_engine_allow_direct_select = 1;
 ```
 
-Sample Queries
+### Sample Queries
 ``
-SELECT count()
-FROM rawEvents;
-
+SELECT count() FROM rawEvents;
 
 SELECT *
 FROM rawEvents
 LIMIT 5
 FORMAT Vertical
-
 
 SELECT
     event_action,
