@@ -4,10 +4,10 @@ set -e
 clickhouse client -n <<-EOSQL
 CREATE OR REPLACE TABLE auditEvents
 (
-    id UUID,
+    id String,
     type String,
-    metadata Tuple(event Tuple(type String, action String, createdAt String)),
-    content Tuple(size UInt64, topic String, timestamp String),
+    metadata Tuple(event Tuple(type String, action String, createdAt String, state Tuple(status Enum('success', 'error'))), trace Tuple(service String, tags Tuple(source String, destination String))),
+    content String,
 )
 ENGINE = Kafka(
    'kafka:29092',
