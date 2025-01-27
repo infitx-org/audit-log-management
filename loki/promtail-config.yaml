@@ -19,9 +19,46 @@ scrape_configs:
     pipeline_stages:
       - json:
           expressions:
-            timestamp: timestamp
-            level: level
-            message: message
+            id: id                              
+            content_headers_host: content.headers.host  
+            trace_service: metadata.trace.service  
+            event_id: metadata.event.id               
+            event_type: metadata.event.type           
+            event_action: metadata.event.action       
+            event_status: metadata.event.state.status 
+            source: metadata.trace.tags.source        
+            destination: metadata.trace.tags.destination  
+            transaction_type: metadata.trace.tags.transactionType  
+            transaction_action: metadata.trace.tags.transactionAction  
+            trace_id: metadata.trace.traceId          
+            span_id: metadata.trace.spanId            
+            timestamp: metadata.event.createdAt       
+            content_from: content.value.from          
+            content_to: content.value.to              
+            uri_params_id: content.value.content.uriParams.id  
+            payload_fulfilment: content.value.content.payload.fulfilment  
+            transfer_state: content.value.content.payload.transferState  
+      - timestamp:
+          source: metadata.event.createdAt  
+          format: RFC3339
+      - labels:
+          service: trace_service                   
+          event_id: event_id
+          event_type: event_type
+          event_action: event_action
+          event_status: event_status
+          source: source
+          destination: destination
+          transaction_type: transaction_type
+          transaction_action: transaction_action
+          content_from: content_from
+          content_to: content_to
+          transfer_state: transfer_state
+      - output:
+          source: metadata.trace.tags.source  # Use "source" field as the log message
     relabel_configs:
+      - source_labels: ['__address__']
+        target_label: instance
+        replacement: "kafka-broker"  # Optional instance label
       - source_labels: ['__meta_kafka_topic']
         target_label: topic

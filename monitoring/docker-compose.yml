@@ -1,0 +1,114 @@
+version: "3.7"
+
+networks:
+  test-net:
+    name: test-net
+    external: true
+
+volumes:
+    vol_prometheus_data: {}
+    vol_grafana_data: {}
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - vol_prometheus_data:/prometheus/
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--enable-feature=native-histograms' # Ref: https://prometheus.io/docs/concepts/metric_types/#histogram, https://k6.io/docs/results-output/real-time/prometheus-remote-write/#send-test-metrics-to-a-remote-write-endpoint
+      - '--web.enable-remote-write-receiver' # Ref: https://prometheus.io/docs/prometheus/latest/feature_flags/#remote-write-receiver
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    links:
+      - cadvisor:cadvisor
+    depends_on:
+      - cadvisor
+    networks:
+      - test-net
+    restart: always
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      # - /:/host:ro,rslave
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    networks:
+      - test-net
+    restart: always
+    deploy:
+      mode: global
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+    ports:
+      - 8080:8080
+    networks:
+      - test-net
+    restart: always
+    deploy:
+      mode: global
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    user: "472"
+    depends_on:
+      - prometheus
+    ports:
+      - 9999:3000
+    volumes:
+      - vol_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/config.env
+    networks:
+      - test-net
+    restart: always
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    ports:
+      - "9308:9308"
+    networks:
+      - test-net
+    command:
+      - --kafka.server=kafka:29092
+
+  # kafka-mon-ui:
+  #   image: docker.redpanda.com/redpandadata/console:${DEP_KAfKA_UI_VERSION}
+  #   deploy:
+  #     replicas: 1
+  #   restart: on-failure
+  #   hostname: kafka-mon-ui
+  #   ports:
+  #   - "9080:8080"
+  #   networks:
+  #     - mojaloop-net
+  #   environment:
+  #     - KAFKA_BROKERS=kafka:29092

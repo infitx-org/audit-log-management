@@ -16,20 +16,22 @@ services:
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
 
-  grafana:
-    image: grafana/grafana:11.4.0
-    networks:
-      - test-net
-    ports:
-      - "9300:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - loki
+  # grafana:
+  #   image: grafana/grafana:11.4.0
+  #   networks:
+  #     - test-net
+  #   ports:
+  #     - "9993:3000"
+  #   volumes:
+  #     - ./grafana/provisioning/:/etc/grafana/provisioning/
+  #   environment:
+  #     - GF_SECURITY_ADMIN_USER=admin
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   depends_on:
+  #     - loki
 
   promtail:
-    image: grafana/promtail:3.2.2
+    image: grafana/promtail:latest
     networks:
       - test-net
     volumes:

@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    jsonData:
+      maxLines: 1000       # Optional: Max lines to fetch for logs
+      derivedFields:
+        - name: Trace ID
+          url: "$${__value.raw}"
+          matcherRegex: "(traceId=\\w+)"
+          datasourceUid: jaeger  # Replace with your tracing data source UID if applicable
+    basicAuth: false        # Set to true if Loki requires authentication
