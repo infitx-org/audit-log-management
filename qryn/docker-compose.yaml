@@ -7,7 +7,7 @@ networks:
 
 services:
   qryn:
-    image: qxip/qryn:latest
+    image: qxip/qryn:3.2.39
     ports:
       - "3100:3100"
     networks:

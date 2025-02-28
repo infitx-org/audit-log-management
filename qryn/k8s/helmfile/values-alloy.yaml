@@ -1,0 +1,113 @@
+alloy:
+  configMap:
+    # -- Create a new ConfigMap for the config file.
+    create: true
+    # -- Content to assign to the new ConfigMap.  This is passed into `tpl` allowing for templating from values.
+    content: |-
+      loki.source.kafka "raw" {
+        brokers                = ["kafka.demo:9092"]
+        topics                 = ["topic-event-audit"]
+        forward_to             = [loki.process.tags.receiver]
+        // relabel_rules          = loki.relabel.kafka.rules
+        version                = "2.0.0"
+        labels                = {service_name = "raw_kafka"}
+
+      }
+
+
+      loki.process "tags" {
+        forward_to      = [loki.write.http.receiver]
+        stage.json {
+          expressions = {
+            trace_id = "metadata.trace.traceId",
+            span_id = "metadata.trace.spanId",
+            trace_service = "metadata.trace.service",
+            event_id = "metadata.event.id",
+            event_type = "metadata.event.type",
+            event_action = "metadata.event.action",
+            event_status = "metadata.event.state.status",
+
+            source = "metadata.trace.tags.source",
+            destination = "metadata.trace.tags.destination",
+            transactionType = "metadata.trace.tags.transactionType",
+            transactionAction = "metadata.trace.tags.transactionAction",
+
+            auditType = "metadata.trace.tags.auditType",
+            contentType = "metadata.trace.tags.contentType",
+            serviceName = "metadata.trace.tags.serviceName",
+            operation = "metadata.trace.tags.operation",
+            httpMethod = "metadata.trace.tags.httpMethod",
+            httpPath = "metadata.trace.tags.httpPath",
+            httpQuery = "metadata.trace.tags.httpQuery",
+            httpUrl = "metadata.trace.tags.httpUrl",
+            partyIdType = "metadata.trace.tags.partyIdType",
+            partyIdentifier = "metadata.trace.tags.partyIdentifier",
+            partySubIdOrType = "metadata.trace.tags.partySubIdOrType",
+            requestId = "metadata.trace.tags.requestId",
+            oracleId = "metadata.trace.tags.oracleId",
+
+            quoteId = "metadata.trace.tags.quoteId",
+            transactionId = "metadata.trace.tags.transactionId",
+            conversionRequestId = "metadata.trace.tags.conversionRequestId",
+            conversionId = "metadata.trace.tags.conversionId",
+            determiningTransferId = "metadata.trace.tags.determiningTransferId",
+            transferId = "metadata.trace.tags.transferId",
+            commitRequestId = "metadata.trace.tags.commitRequestId",
+          }
+        }
+
+        stage.labels {
+          values = {
+            source = "",
+            destination = "",
+            transactionType = "",
+            transactionAction = "",
+            trace_id = "",
+            span_id = "",
+            trace_service = "",
+            event_id = "",
+            event_type = "",
+            event_action = "",
+            event_status = "",
+            auditType = "",
+            contentType = "",
+            serviceName = "",
+            operation = "",
+            httpMethod = "",
+            httpPath = "",
+            httpQuery = "",
+            partyIdType = "",
+            partyIdentifier = "",
+            partySubIdOrType = "",
+            requestId = "",
+            oracleId = "",
+            quoteId = "",
+            transactionId = "",
+            conversionRequestId = "",
+            conversionId = "",
+            determiningTransferId = "",
+            transferId = "",
+            commitRequestId = "",
+          }
+        }
+      }
+
+
+
+      /* 
+      loki.relabel "kafka" {
+        // forward_to      = [loki.write.http.receiver]
+        forward_to  = [loki.process.tags.receiver]
+        rule {
+          source_labels = ["__meta_kafka_topic"]
+          target_label  = "topic"
+        }
+      }
+      */
+
+      loki.write "http" {
+        endpoint {
+          url = "http://qryn:3100/loki/api/v1/push"
+        }
+      }
+

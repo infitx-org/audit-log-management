@@ -1,0 +1,43 @@
+replicas: 1
+
+## Create a headless service for the deployment
+headlessService: false
+
+ingress:
+  enabled: true
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  labels: {}
+  path: /
+
+  hosts:
+    - grafana.local
+
+
+
+# Administrator credentials when not using an existing secret (see below)
+adminUser: admin
+adminPassword: admin
+
+## Configure grafana datasources
+## ref: http://docs.grafana.org/administration/provisioning/#datasources
+##
+datasources:
+ datasources.yaml:
+   apiVersion: 1
+   datasources:
+    - name: Qryn
+      type: loki
+      access: proxy
+      url: http://qryn:3100
+      isDefault: true
+      jsonData:
+        maxLines: 100
+        derivedFields:
+          - name: Trace ID
+            url: "$${__value.raw}"
+            matcherRegex: "(traceId=\\w+)"
+            datasourceUid: jaeger  # Replace with your tracing data source UID if applicable
+      basicAuth: false
+

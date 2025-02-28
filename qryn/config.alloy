@@ -33,11 +33,20 @@ loki.process "tags" {
       httpMethod = "metadata.trace.tags.httpMethod",
       httpPath = "metadata.trace.tags.httpPath",
       httpQuery = "metadata.trace.tags.httpQuery",
+      httpUrl = "metadata.trace.tags.httpUrl",
       partyIdType = "metadata.trace.tags.partyIdType",
       partyIdentifier = "metadata.trace.tags.partyIdentifier",
       partySubIdOrType = "metadata.trace.tags.partySubIdOrType",
       requestId = "metadata.trace.tags.requestId",
       oracleId = "metadata.trace.tags.oracleId",
+
+      quoteId = "metadata.trace.tags.quoteId",
+      transactionId = "metadata.trace.tags.transactionId",
+      conversionRequestId = "metadata.trace.tags.conversionRequestId",
+      conversionId = "metadata.trace.tags.conversionId",
+      determiningTransferId = "metadata.trace.tags.determiningTransferId",
+      transferId = "metadata.trace.tags.transferId",
+      commitRequestId = "metadata.trace.tags.commitRequestId",
 
     }
   }
@@ -67,6 +76,13 @@ loki.process "tags" {
       partySubIdOrType = "",
       requestId = "",
       oracleId = "",
+      quoteId = "",
+      transactionId = "",
+      conversionRequestId = "",
+      conversionId = "",
+      determiningTransferId = "",
+      transferId = "",
+      commitRequestId = "",
     }
   }
 }
