@@ -7,6 +7,8 @@ image:
   repository: bitnami/clickhouse
   tag: 25.1.6-debian-12-r0
   debug: false
+
+resourcesPreset: "large"
 ## @param shards Number of ClickHouse shards to deploy
 ##
 shards: 1
@@ -170,7 +172,7 @@ service:
 persistence:
   ## @param persistence.enabled Enable persistence using Persistent Volume Claims
   ##
-  enabled: false
+  enabled: true
   ## @param persistence.existingClaim Name of an existing PVC to use
   ##
   existingClaim: ""
@@ -295,7 +297,7 @@ zookeeper:
   enabled: true
   replicaCount: 1
   persistence:
-    enabled: false
+    enabled: true
   service:
     ports:
       client: 2181
