@@ -1,0 +1,34 @@
+version: '3.8'
+
+networks:
+  test-net:
+    name: test-net
+    external: true
+
+volumes:
+  data:
+
+services:
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    restart: unless-stopped
+    environment:
+      ZO_ROOT_USER_EMAIL: "root@example.com"
+      ZO_ROOT_USER_PASSWORD: "Complexpass#123"
+      ZO_ALLOW_USER_DEFINED_SCHEMAS: true
+      ZO_INGEST_FLATTEN_LEVEL: 1
+    networks:
+      - test-net
+    ports:
+      - "5080:5080"
+    volumes:
+      - data:/data
+
+  fluent-bit:
+    image: fluent/fluent-bit
+    networks:
+      - test-net
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./scripts:/fluent-bit/scripts
+
