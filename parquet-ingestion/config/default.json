@@ -1,0 +1,36 @@
+{
+    "S3": {
+        "DISABLED": true,
+        "TYPE": "minio",
+        "ENDPOINT": "http://localhost:9595",
+        "BUCKET": "audit-logs",
+        "ACCESS_KEY": "minio_access_key",
+        "SECRET_KEY": "minio_secret_key",
+        "REGION": "us-east-1",
+        "ROOT": "some-env"
+    },
+    "KAFKA": {
+        "topic": "topic-event-audit",
+        "options": {
+            "mode": 2,
+            "batchSize": 1000,
+            "pollFrequency": 10,
+            "recursiveTimeout": 100,
+            "messageCharset": "utf8",
+            "messageAsJSON": true,
+            "sync": true,
+            "consumeTimeout": 10
+        },
+        "rdkafkaConf": {
+            "client.id": "audit-logs-consumer",
+            "group.id": "audit-logs-consumer-group",
+            "metadata.broker.list": "localhost:9092",
+            "socket.keepalive.enable": true,
+            "allow.auto.create.topics": true,
+            "enable.auto.commit": false
+        },
+        "topicConf": {
+            "auto.offset.reset": "earliest"
+        }
+    }
+}
