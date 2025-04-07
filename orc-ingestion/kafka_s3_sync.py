@@ -1,4 +1,4 @@
-## pip3 install confluent-kafka pyorc boto3
+## pip3 install confluent-kafka pyorc boto3 python-dotenv
 
 import os
 import json
@@ -9,25 +9,28 @@ import uuid
 import logging
 from datetime import datetime
 from confluent_kafka import Consumer, KafkaError
+from dotenv import load_dotenv
+load_dotenv()  # This will load vars from .env into os.environ
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Kafka Configuration
-KAFKA_BROKER = "localhost:9092"  # Change if needed
-KAFKA_TOPIC = "topic-event-audit"
-GROUP_ID = "orc-writer"
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "topic-event-audit")
+KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "orc-kafka-s3-ingester")
 
 # S3 Configuration
-S3_BUCKET = "audit-logs"
-S3_ENDPOINT = "http://localhost:9595"
-S3_ACCESS_KEY = "minio_access_key"
-S3_SECRET_KEY = "minio_secret_key"
-S3_FOLDER = "some-env-orc"
+S3_BUCKET = os.getenv("S3_BUCKET", "audit-logs")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9595")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "minio_access_key")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minio_secret_key")
+S3_FOLDER = os.getenv("S3_FOLDER", "some-env-orc")
 
-# ORC Output Directory
-ORC_OUTPUT_DIR = "data/orc"
-os.makedirs(ORC_OUTPUT_DIR, exist_ok=True)  # Ensure directory exists
+# Batch Settings
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "1000"))
+POLL_TIMEOUT = float(os.getenv("POLL_TIMEOUT", "1.0"))
+
 
 # ORC Schema (Single-Line Format)
 schema = "struct<trace_id:string,span_id:string,trace_service:string,event_id:string,event_type:string,event_action:string,event_status:string,source:string,destination:string,timestamp:bigint,line:string>"
@@ -35,14 +38,10 @@ schema = "struct<trace_id:string,span_id:string,trace_service:string,event_id:st
 # Kafka Consumer Configuration
 consumer_conf = {
     "bootstrap.servers": KAFKA_BROKER,
-    "group.id": GROUP_ID,
+    "group.id": KAFKA_GROUP_ID,
     "auto.offset.reset": "earliest",  # Start from the beginning if no offset exists
     "enable.auto.commit": False,  # Manual commit after successful ORC write
 }
-
-# Batch Settings
-BATCH_SIZE = 1000  # Fetch 1000 messages at a time
-POLL_TIMEOUT = 1.0  # Wait 1 second for messages if not enough in batch
 
 # Create S3 client
 s3_client = boto3.client(
@@ -121,6 +120,7 @@ def process_batch(messages):
         logging.info(f"Uploaded ORC file to s3://{S3_BUCKET}/{s3_key}")
     except Exception as e:
         logging.error(f"❌ Error writing ORC file: {e}", exc_info=True)
+        raise
 
 
 def consume_messages():
@@ -135,9 +135,12 @@ def consume_messages():
                 logging.info("No new messages received.")
                 continue  # No messages received, continue polling
 
-            process_batch(messages)
-            consumer.commit(asynchronous=False)  # Commit offset after successful write
-            logging.info("✅ Offsets committed.")
+            try:
+                process_batch(messages)
+                consumer.commit(asynchronous=False)  # Commit offset after successful write
+                logging.info("✅ Offsets committed.")
+            except Exception as e:
+                logging.error(f"❌ Skipping offset commit due to batch processing failure: {e}", exc_info=True)
 
     except KeyboardInterrupt:
         logging.info("🛑 Stopping Kafka consumer...")
