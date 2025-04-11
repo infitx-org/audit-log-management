@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-ingest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3-ingest
+  template:
+    metadata:
+      labels:
+        app: s3-ingest
+    spec:
+      containers:
+        - name: s3-ingest
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          env:
+            - name: KAFKA_BROKER
+              value: "kafka.demo.svc.cluster.local:9092"
+            - name: S3_ENDPOINT
+              value: "http://minio:9000"
+            - name: S3_BUCKET
+              value: "audit-env1"
+            - name: S3_ACCESS_KEY
+              value: "admin"
+            - name: S3_SECRET_KEY
+              value: "admin123"
+            - name: S3_FOLDER
+              value: "orc"
+          volumeMounts:
+            - name: s3-ingest-init-script
+              mountPath: /opt/app/init.sh
+              subPath: init.sh
+            - name: s3-ingest-scripts
+              mountPath: /opt/app/scripts
+          command: ["/bin/bash", "/opt/app/init.sh"]
+      volumes:
+        - name: s3-ingest-init-script
+          configMap:
+            name: s3-ingest-init-script
+            defaultMode: 0755
+        - name: s3-ingest-scripts
+          configMap:
+            name: s3-ingest-scripts
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-ingest-init-script
+data:
+  init.sh: |
+    #!/bin/bash
+    set -e
+    echo "🔧 Installing dependencies..."
+    pip install --no-cache-dir confluent-kafka pyorc boto3 python-dotenv
+    echo "✅ s3-ingest starting..."
+    python /opt/app/scripts/ingest.py
+
+---

@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superset
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superset
+  template:
+    metadata:
+      labels:
+        app: superset
+    spec:
+      initContainers:
+        - name: superset-init
+          image: apache/superset:latest
+          command: ["/bin/bash", "/init/init.sh"]
+          volumeMounts:
+            - name: init-script
+              mountPath: /init
+            - name: superset-data
+              mountPath: /app/superset_home
+            - name: superset-config
+              mountPath: /app/pythonpath/superset_config.py
+              subPath: superset_config.py
+          env:
+            - name: SUPERSET_CONFIG_PATH
+              value: /app/pythonpath/superset_config.py
+            - name: SECRET_KEY
+              value: your-very-secret-key
+      containers:
+        - name: superset
+          image: apache/superset:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8088
+              protocol: TCP
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          env:
+            - name: SECRET_KEY
+              value: "your-very-secret-key"
+            - name: SUPERSET_CONFIG_PATH
+              value: "/app/pythonpath/superset_config.py"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "pip install trino"
+          volumeMounts:
+            - name: superset-data
+              mountPath: /app/superset_home
+            - name: superset-config
+              mountPath: /app/pythonpath/superset_config.py
+              subPath: superset_config.py
+            - name: superset-bootstrap
+              mountPath: /bootstrap/bootstrap.sh
+              subPath: bootstrap.sh
+          command: ["/bin/bash", "/bootstrap/bootstrap.sh"]
+      volumes:
+        - name: superset-data
+          emptyDir: {}
+        - name: superset-config
+          configMap:
+            name: superset-config
+        - name: init-script
+          configMap:
+            name: superset-init-script
+            defaultMode: 0755
+        - name: superset-bootstrap
+          configMap:
+            name: superset-bootstrap
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superset-config
+data:
+  superset_config.py: |
+    SECRET_KEY = "your-very-secret-key"
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superset-init-script
+  namespace: audit
+data:
+  init.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "🔧 Running Superset DB migration..."
+    superset db upgrade
+
+    echo "👤 Creating admin user (if not exists)..."
+    superset fab create-admin \
+      --username admin \
+      --firstname Admin \
+      --lastname User \
+      --email admin@superset.com \
+      --password admin || true
+
+    echo "🚀 Running Superset init..."
+    superset init
+
+    echo "✅ Superset initialized"
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superset-bootstrap
+data:
+  bootstrap.sh: |
+    #!/bin/bash
+    echo "Installing trino..."
+    pip install trino
+    # export PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.*/site-packages
+    echo "Starting Superset..."
+    /usr/bin/run-server.sh
+
+---
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: superset
+# spec:
+#   selector:
+#     app: superset
+#   ports:
+#     - name: http
+#       protocol: TCP
+#       port: 8088
+#       targetPort: http
+#   type: ClusterIP

@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: &NAMESPACE audit
+
+resources:
+- namespace.yaml
+- trino.yaml
+- superset.yaml
+- trino-post-job.yaml
+- s3-ingest.yaml
+
+namespace: *NAMESPACE
+# namePrefix: a-
+
+configMapGenerator:
+- name: s3-ingest-scripts
+  files:
+    - ingest.py=s3-ingest-scripts/kafka_s3_sync.py
+
+helmCharts:
+- name: minio
+  releaseName: minio
+  repo: https://charts.min.io/
+  version: 5.4.0
+  namespace: *NAMESPACE
+  valuesFile: ./helm-values/values-minio.yaml

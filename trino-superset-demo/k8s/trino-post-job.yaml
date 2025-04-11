@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trino-post-job
+  namespace: audit
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trino-post
+          image: trinodb/trino:367
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Trino to be ready..."
+              until curl -s http://trino:8080/v1/info | grep -q '"starting":false'; do
+                echo "Waiting for Trino..." && sleep 3;
+              done
+              echo "Trino is up, running DDL..."
+              trino --server http://trino:8080 --execute "
+                CREATE SCHEMA IF NOT EXISTS hive.audit_logs;
+                CREATE TABLE IF NOT EXISTS hive.audit_logs.orc (
+                  trace_id VARCHAR,
+                  span_id VARCHAR,
+                  trace_service VARCHAR,
+                  event_id VARCHAR,
+                  event_type VARCHAR,
+                  event_action VARCHAR,
+                  event_status VARCHAR,
+                  source VARCHAR,
+                  destination VARCHAR,
+                  transaction_type VARCHAR,
+                  transaction_action VARCHAR,
+                  audit_type VARCHAR,
+                  content_type VARCHAR,
+                  service_name VARCHAR,
+                  operation VARCHAR,
+                  http_method VARCHAR,
+                  http_path VARCHAR,
+                  http_query VARCHAR,
+                  http_url VARCHAR,
+                  party_id_type VARCHAR,
+                  party_identifier VARCHAR,
+                  party_sub_id_or_type VARCHAR,
+                  request_id VARCHAR,
+                  oracle_id VARCHAR,
+                  quote_id VARCHAR,
+                  transaction_id VARCHAR,
+                  conversion_request_id VARCHAR,
+                  conversion_id VARCHAR,
+                  determining_transfer_id VARCHAR,
+                  transfer_id VARCHAR,
+                  commit_request_id VARCHAR,
+                  timestamp BIGINT,
+                  line VARCHAR,
+                  year INT,
+                  month INT,
+                  day INT,
+                  hour INT
+                )
+                WITH (
+                  external_location = 's3a://audit-env1/orc',
+                  format = 'ORC',
+                  partitioned_by = ARRAY['year', 'month', 'day', 'hour']
+                );
+
+
+                call hive.system.sync_partition_metadata('audit_logs', 'orc', 'ADD');
+                SHOW TABLES IN hive.audit_logs;"
+
+---
