@@ -5,9 +5,9 @@ metadata:
 
 resources:
 - namespace.yaml
-- trino.yaml
+# - trino.yaml
 - superset.yaml
-- trino-post-job.yaml
+# - trino-post-job.yaml
 - s3-ingest.yaml
 
 namespace: *NAMESPACE
@@ -17,6 +17,12 @@ configMapGenerator:
 - name: s3-ingest-scripts
   files:
     - ingest.py=s3-ingest-scripts/kafka_s3_sync.py
+- name: superset-import
+  files:
+    - dashboard.zip=superset-import/dashboard.zip
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 helmCharts:
 - name: minio
@@ -25,3 +31,9 @@ helmCharts:
   version: 5.4.0
   namespace: *NAMESPACE
   valuesFile: ./helm-values/values-minio.yaml
+- name: clickhouse
+  releaseName: clickhouse
+  repo: oci://registry-1.docker.io/bitnamicharts
+  version: 8.0.10
+  namespace: *NAMESPACE
+  valuesFile: ./helm-values/values-clickhouse.yaml

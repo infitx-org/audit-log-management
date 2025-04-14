@@ -24,6 +24,8 @@ spec:
             - name: superset-config
               mountPath: /app/pythonpath/superset_config.py
               subPath: superset_config.py
+            - name: superset-import
+              mountPath: /app/superset_import
           env:
             - name: SUPERSET_CONFIG_PATH
               value: /app/pythonpath/superset_config.py
@@ -59,6 +61,8 @@ spec:
           volumeMounts:
             - name: superset-data
               mountPath: /app/superset_home
+            - name: superset-import
+              mountPath: /app/superset_import
             - name: superset-config
               mountPath: /app/pythonpath/superset_config.py
               subPath: superset_config.py
@@ -79,6 +83,9 @@ spec:
         - name: superset-bootstrap
           configMap:
             name: superset-bootstrap
+        - name: superset-import
+          configMap:
+            name: superset-import
 ---
 
 apiVersion: v1
@@ -115,6 +122,9 @@ data:
     echo "🚀 Running Superset init..."
     superset init
 
+    echo "🔧 Importing dashboards..."
+    superset import-dashboards -p /app/superset_import/dashboard.zip  -u admin
+
     echo "✅ Superset initialized"
 
 ---
@@ -126,8 +136,10 @@ metadata:
 data:
   bootstrap.sh: |
     #!/bin/bash
-    echo "Installing trino..."
+    echo "Installing trino support..."
     pip install trino
+    echo "Installing clickhouse support..."
+    pip install clickhouse-connect
     # export PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.*/site-packages
     echo "Starting Superset..."
     /usr/bin/run-server.sh
