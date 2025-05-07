@@ -1,4 +1,3 @@
-confluent-kafka
 pyorc
 boto3
 python-dotenv
