@@ -1,3 +1,4 @@
 openobserve/data/*
 .DS_Store
 *-IGNORE
+**/charts/

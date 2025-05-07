@@ -1,0 +1,82 @@
+replicas: 1
+
+## Create a headless service for the deployment
+headlessService: false
+
+ingress:
+  enabled: true
+  hosts:
+    - grafana.local
+
+# Administrator credentials when not using an existing secret (see below)
+adminUser: admin
+adminPassword: admin
+
+plugins:
+  - grafana-clickhouse-datasource
+  
+
+## Configure grafana datasources
+## ref: http://docs.grafana.org/administration/provisioning/#datasources
+##
+datasources:
+ datasources.yaml:
+   apiVersion: 1
+   datasources:
+    # - name: grafana-clickhouse-datasource
+    #   type: grafana-clickhouse-datasource
+    #   typeName: ClickHouse
+    #   typeLogoUrl: public/app/plugins/datasource/clickhouse/img/clickhouse_logo.svg
+    #   access: proxy
+    #   isDefault: true
+    #   jsonData:
+    #     host: clickhouse
+    #     port: 9000
+    #     protocol: native
+    #     maxLines: 100
+    #     username: default
+    #     password: ""
+    #   basicAuth: false
+    - name: ClickHouse
+      type: grafana-clickhouse-datasource
+      jsonData:
+        defaultDatabase: default
+        port: 9000
+        host: clickhouse
+        username: default
+        tlsSkipVerify: false
+        # tlsAuth: <bool>
+        # tlsAuthWithCACert: <bool>
+        # secure: <bool>
+        # dialTimeout: <seconds>
+        # queryTimeout: <seconds>
+        # protocol: <native|http>
+        protocol: native
+        defaultTable: audit_logs
+        # httpHeaders:
+        # - name: X-Example-Header
+        #   secure: false
+        #   value: <string>
+        # - name: Authorization
+        #   secure: true
+        # logs:
+        #   defaultDatabase: <string>
+        #   defaultTable: <string>
+        #   otelEnabled: <bool>
+        #   otelVersion: <string>
+        #   timeColumn: <string>
+        #   ...Column: <string>
+        # traces:
+        #   defaultDatabase: <string>
+        #   defaultTable: <string>
+        #   otelEnabled: <bool>
+        #   otelVersion: <string>
+        #   durationUnit: <seconds|milliseconds|microseconds|nanoseconds>
+        #   traceIdColumn: <string>
+        #   ...Column: <string>
+      secureJsonData:
+        password: supersecretpassword
+        # tlsCACert: <string>
+        # tlsClientCert: <string>
+        # tlsClientKey: <string>
+        # secureHttpHeaders.Authorization: <string>

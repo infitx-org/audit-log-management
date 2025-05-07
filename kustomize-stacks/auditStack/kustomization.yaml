@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - s3-ingest.yaml
+
+namespace: audit
+
+helmCharts:
+  - name: clickhouse
+    releaseName: clickhouse
+    version: 9.1.1
+    repo: oci://registry-1.docker.io/bitnamicharts
+    valuesFile: values-clickhouse.yaml
+    namespace: audit
+  - name: minio
+    releaseName: minio
+    repo: https://charts.min.io/
+    version: 5.4.0
+    namespace: audit
+    valuesFile: values-minio.yaml
+  - name: grafana
+    releaseName: grafana
+    version: 8.10.1
+    repo: https://grafana.github.io/helm-charts
+    valuesFile: values-grafana.yaml
+    namespace: audit
